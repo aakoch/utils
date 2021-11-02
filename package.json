@@ -1,0 +1,22 @@
+{
+  "name": "@aakoch/utils",
+  "version": "0.0.0",
+  "description": "Adam's Utilities",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aakoch",
+    "util",
+    "utils"
+  ],
+  "author": "Adam A. Koch (aakoch)",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "debug": "^4.3.2",
+    "minimist": "^1.2.5"
+  }
+}
