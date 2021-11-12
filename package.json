@@ -2,9 +2,12 @@
   "name": "@aakoch/utils",
   "version": "0.0.0",
   "description": "Adam's Utilities",
-  "main": "index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/dist.js",
+    "dist": "node scripts/dist.js"
   },
   "keywords": [
     "aakoch",

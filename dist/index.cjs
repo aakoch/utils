@@ -1,9 +1,10 @@
-import { fileURLToPath } from 'url';
-import minimist from 'minimist';
-import chalk from 'chalk'
-import debugFunc from 'debug'
-import path from 'path'
-import fs from 'fs'
+const { fileURLToPath } = require('url')
+const minimist = require('minimist')
+const chalk = require('chalk')
+const debugFunc = require('debug')
+const path = require('path')
+const fs = require('fs')
+
 const debug = debugFunc('aakoch:utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
@@ -57,9 +58,9 @@ async function parseArguments(process, printUsage) {
     }
 
     debug('creating read stream for ' + argv?._[0])
-    ret = {
+    return {
       in: { name: argv._[0], createStream: () => fs.createReadStream(argv._[0]) },
-      out: { name: argv._[1], createStream: () => process.stdout },
+      out: { name: 'stdout', createStream: () => process.stdout },
       override: argv.f
     }
   }
@@ -130,6 +131,24 @@ async function parseArguments(process, printUsage) {
   }
 }
 
-export {
-  exists, isSupportedFileExtension, parseArguments
+function simpleProjectRootDir() {
+  const originalDir = process.cwd()
+  let notFound = true
+    while(notFound) {
+    try {
+      fs.accessSync('package.json', fs.constants.F_OK)
+      notFound = false
+    }
+    catch (e) {
+      process.chdir('..')
+    }
+  }
+  const pkgDir = process.cwd()
+  process.chdir(originalDir)
+  return pkgDir
 }
+
+exports.exists = exists
+exports.isSupportedFileExtension = isSupportedFileExtension
+exports.parseArguments = parseArguments
+exports.simpleProjectRootDir = simpleProjectRootDir

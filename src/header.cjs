@@ -1,0 +1,6 @@
+const { fileURLToPath } = require('url')
+const minimist = require('minimist')
+const chalk = require('chalk')
+const debugFunc = require('debug')
+const path = require('path')
+const fs = require('fs')
