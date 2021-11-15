@@ -13,24 +13,17 @@ function isSupportedFileExtension(fileExtWithDot) {
   return fileExtWithDot.toLowerCase() === '.pug' || fileExtWithDot.toLowerCase() === '.foo-dog'
 }
 
-if (typeof String.fill !== 'function') {
-  String.fill = function (length, char) {
-    return ''.padStart(length, char || ' ')
-  }
-}
-
 Array.prototype.peek = function () {
   return this[this.length - 1]
 }
 
 String.prototype.removeFromEnd = function(str) {
-  return this.endsWith(str) ? this.substring(0, this.indexOf(str)) : this
+  return this.endsWith(str) ? this.substring(0, this.lastIndexOf(str)) : this
 }
 
 function exists(filename) {
   try {
-    fs.accessSync(filename)
-    return true
+    return (fs.accessSync(filename), true)
   } catch (e) {
     return false
   }

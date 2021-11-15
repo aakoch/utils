@@ -13,12 +13,6 @@ function isSupportedFileExtension(fileExtWithDot) {
   return fileExtWithDot.toLowerCase() === '.pug' || fileExtWithDot.toLowerCase() === '.foo-dog'
 }
 
-if (typeof String.fill !== 'function') {
-  String.fill = function (length, char) {
-    return ''.padStart(length, char || ' ')
-  }
-}
-
 Array.prototype.peek = function () {
   return this[this.length - 1]
 }
