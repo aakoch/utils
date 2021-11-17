@@ -1,16 +1,14 @@
 // HEADER >>>
-import { fileURLToPath } from 'url';
 import minimist from 'minimist';
-import chalk from 'chalk'
 import debugFunc from 'debug'
 import path from 'path'
 import fs from 'fs'
 // <<< HEADER
-const debug = debugFunc('aakoch:utils')
+const debug = debugFunc('@aakoch:utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
   debug('isSupportedFileExtension(): fileExtWithDot=' + fileExtWithDot)
-  return fileExtWithDot.toLowerCase() === '.pug' || fileExtWithDot.toLowerCase() === '.foo-dog'
+  return fileExtWithDot.toLowerCase() == '.pug' || fileExtWithDot.toLowerCase() == '.foo-dog'
 }
 
 Array.prototype.peek = function () {
@@ -18,7 +16,7 @@ Array.prototype.peek = function () {
 }
 
 String.prototype.removeFromEnd = function(str) {
-  return this.endsWith(str) ? this.substring(0, this.lastIndexOf(str)) : this
+  return this.endsWith(str) ? this.substring(0, this.lastIndexOf(str)) : this.toString()
 }
 
 function exists(filename) {
@@ -28,7 +26,6 @@ function exists(filename) {
     return false
   }
 }
-
 
 async function parseArguments(process, printUsage) {
   const argv = minimist(process.argv.slice(2))

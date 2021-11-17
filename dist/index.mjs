@@ -1,16 +1,14 @@
 // HEADER >>>
-import { fileURLToPath } from 'url';
 import minimist from 'minimist';
-import chalk from 'chalk'
 import debugFunc from 'debug'
 import path from 'path'
 import fs from 'fs'
 // <<< HEADER
-const debug = debugFunc('aakoch:utils')
+const debug = debugFunc('@aakoch:utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
   debug('isSupportedFileExtension(): fileExtWithDot=' + fileExtWithDot)
-  return fileExtWithDot.toLowerCase() === '.pug' || fileExtWithDot.toLowerCase() === '.foo-dog'
+  return fileExtWithDot.toLowerCase() == '.pug' || fileExtWithDot.toLowerCase() == '.foo-dog'
 }
 
 Array.prototype.peek = function () {
@@ -18,13 +16,12 @@ Array.prototype.peek = function () {
 }
 
 String.prototype.removeFromEnd = function(str) {
-  return this.endsWith(str) ? this.substring(0, this.indexOf(str)) : this
+  return this.endsWith(str) ? this.substring(0, this.lastIndexOf(str)) : this.toString()
 }
 
 function exists(filename) {
   try {
-    fs.accessSync(filename)
-    return true
+    return (fs.accessSync(filename), true)
   } catch (e) {
     return false
   }
