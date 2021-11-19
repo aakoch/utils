@@ -29,7 +29,7 @@ function exists(filename) {
 
 async function parseArguments(process, printUsage) {
   const argv = minimist(process.argv.slice(2))
-  console.log('argv=', argv)
+  debug('argv=', argv)
 
   if (argv.help || argv.h) {
     debug('help option detected')
