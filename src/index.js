@@ -117,6 +117,9 @@ async function parseArguments(process, printUsage) {
     if (argv.hasOwnProperty('f')) {
       ret.override = argv.f
     }
+    if (argv.hasOwnProperty('allow-digits-to-start-css-classes')) {
+      ret.allowDigitToStartClassName = !!argv['allow-digits-to-start-css-classes']
+    }
 
     return ret
   }
