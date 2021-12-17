@@ -16,7 +16,7 @@ Array.prototype.peek = function () {
   return this[this.length - 1]
 }
 
-String.prototype.removeFromEnd = function(str) {
+String.prototype.removeFromEnd = function (str) {
   return this.endsWith(str) ? this.substring(0, this.lastIndexOf(str)) : this.toString()
 }
 
@@ -31,17 +31,16 @@ function exists(filename) {
 async function parseArguments(process, printUsage) {
   const argv = minimist(process.argv.slice(2))
   debug('argv=', argv)
+  const ret = { in: {}, out: {} }
 
   if (argv.help || argv.h) {
     debug('help option detected')
     printUsage()
     process.exit()
-  }
-  else if (argv._.length == 0) {
+  } else if (argv._.length == 0) {
     debug('no arguments - using stdin and stdout')
-    return { in: { name: 'stdin', createStream: () => process.stdin }, out: { name: 'stdout', createStream: () => process.stdout } }
-  }
-  else if (argv._.length == 1) {
+    ret = { in: { name: 'stdin', createStream: () => process.stdin }, out: { name: 'stdout', createStream: () => process.stdout } }
+  } else if (argv._.length == 1) {
     debug('one argument - reading file and piping to stdout')
     try {
       fs.accessSync(argv._[0], fs.constants.R_OK)
@@ -50,15 +49,13 @@ async function parseArguments(process, printUsage) {
     }
 
     debug('creating read stream for ' + argv?._[0])
-    return {
+    ret = {
       in: { name: argv._[0], createStream: () => fs.createReadStream(argv._[0]) },
       out: { name: 'stdout', createStream: () => process.stdout },
       override: argv.f
     }
-  }
-  else {
+  } else {
     debug('two or more arguments')
-    const ret = { in: {}, out: {} }
 
     if (argv._[0] == '-') {
       debug('first argument was - - using stdin')
@@ -67,8 +64,7 @@ async function parseArguments(process, printUsage) {
         createStream: () => process.stdin
       }
       debug('Reading from stdin');
-    }
-    else {
+    } else {
       const resolvedIn = path.resolve(argv._[0])
       debug(`first argument was ${argv._[0]}. Resolved is ${resolvedIn} - reading file`)
       try {
@@ -93,8 +89,7 @@ async function parseArguments(process, printUsage) {
         createStream: () => process.stdout
       }
       console.log('writing to stdout');
-    }
-    else {
+    } else {
       const destFileToWriteTo = path.resolve(argv._[1]);
       const destFolderToCreate = path.dirname(destFileToWriteTo);
       debug(`creating (if not already existing) ${destFolderToCreate}`);
@@ -114,27 +109,30 @@ async function parseArguments(process, printUsage) {
           throw e;
       }
     }
-
-    if (argv.hasOwnProperty('f')) {
-      ret.override = argv.f
-    }
-    if (argv.hasOwnProperty('allow-digits-to-start-css-classes')) {
-      ret.allowDigitToStartClassName = !!argv['allow-digits-to-start-css-classes']
-    }
-
-    return ret
   }
+
+  if (argv.hasOwnProperty('f')) {
+    ret.override = argv.f
+  }
+  if (argv.hasOwnProperty('allow-digits-to-start-css-classes')) {
+    ret.allowDigitToStartClassName = !!argv['allow-digits-to-start-css-classes']
+    debug('ret.allowDigitToStartClassName=', ret.allowDigitToStartClassName)
+  } else if (argv.hasOwnProperty('allowDigitToStartClassName')) {
+    ret.allowDigitToStartClassName = new Boolean(argv['allowDigitToStartClassName'])
+    debug('ret.allowDigitToStartClassName=', ret.allowDigitToStartClassName)
+  }
+
+  return ret
 }
 
 function simpleProjectRootDir() {
   const originalDir = process.cwd()
   let notFound = true
-    while(notFound) {
+  while (notFound) {
     try {
       fs.accessSync('package.json', fs.constants.F_OK)
       notFound = false
-    }
-    catch (e) {
+    } catch (e) {
       process.chdir('..')
     }
   }
