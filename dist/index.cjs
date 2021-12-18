@@ -31,7 +31,7 @@ function exists(filename) {
 async function parseArguments(process, printUsage) {
   const argv = minimist(process.argv.slice(2))
   debug('argv=', argv)
-  const ret = { in: {}, out: {} }
+  let ret = { in: {}, out: {} }
 
   if (argv.help || argv.h) {
     debug('help option detected')
