@@ -2,8 +2,8 @@
   "name": "@aakoch/utils",
   "version": "0.0.0",
   "description": "Adam's Utilities",
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "source": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node scripts/dist.js",
@@ -21,5 +21,17 @@
     "chalk": "^4.1.2",
     "debug": "^4.3.2",
     "minimist": "^1.2.5"
+  },
+  "devDependencies": {
+    "parcel": "^2.0.1"
+  },
+  "engines": {
+    "node": ">=8"
+  },
+  "targets": {
+    "main": {
+      "optimize": true,
+      "isLibrary": true
+    }
   }
 }
