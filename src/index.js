@@ -1,9 +1,8 @@
-// HEADER >>>
 import minimist from 'minimist';
 import debugFunc from 'debug'
 import path from 'path'
 import fs from 'fs'
-// <<< HEADER
+
 const debug = debugFunc('@aakoch:utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
@@ -140,11 +139,9 @@ function simpleProjectRootDir() {
   return pkgDir
 }
 
-// EXPORT >>>
 export {
   exists,
   isSupportedFileExtension,
   parseArguments,
   simpleProjectRootDir
 }
-// <<< EXPORT

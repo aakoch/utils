@@ -5,9 +5,7 @@
   "source": "src/index.js",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/dist.js",
-    "dist": "node scripts/dist.js"
+    "build": "parcel build"
   },
   "keywords": [
     "aakoch",
