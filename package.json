@@ -1,5 +1,5 @@
 {
-  "name": "@aakochnpm/utils",
+  "name": "@foo-dog/utils",
   "version": "0.1.0",
   "description": "Adam's Utilities",
   "source": "src/index.js",
