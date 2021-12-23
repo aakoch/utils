@@ -1,6 +1,6 @@
 {
   "name": "@aakoch/utils",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Adam's Utilities",
   "source": "src/index.js",
   "main": "dist/index.js",
