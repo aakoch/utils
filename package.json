@@ -5,7 +5,8 @@
   "source": "src/index.js",
   "main": "dist/index.js",
   "scripts": {
-    "build": "parcel build"
+    "build": "parcel build",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "aakoch",
