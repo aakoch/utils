@@ -1,6 +1,6 @@
 {
   "name": "@foo-dog/utils",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Adam's Utilities",
   "source": "src/index.js",
   "main": "dist/main.js",
