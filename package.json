@@ -5,6 +5,7 @@
   "source": "src/index.js",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "type": "module",
   "scripts": {
     "build": "parcel build",
     "postversion": "git push && git push --tags",
