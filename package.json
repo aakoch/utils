@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "description": "Adam's Utilities",
   "source": "src/index.js",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
   "scripts": {
     "build": "parcel build",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "test": ""
   },
   "keywords": [
     "aakoch",
@@ -15,7 +17,6 @@
   ],
   "author": "Adam A. Koch (aakoch)",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "chalk": "^4.1.2",
     "debug": "^4.3.2",
@@ -29,6 +30,10 @@
   },
   "targets": {
     "main": {
+      "optimize": true,
+      "isLibrary": true
+    },
+    "module": {
       "optimize": true,
       "isLibrary": true
     }
