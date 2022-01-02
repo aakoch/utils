@@ -3,13 +3,11 @@
   "version": "0.2.2",
   "description": "Adam's Utilities",
   "source": "src/index.js",
-  "main": "dist/main.js",
-  "module": "dist/module.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "parcel build",
-    "postversion": "git push && git push --tags",
-    "test": ""
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "aakoch",
@@ -27,20 +25,12 @@
     "parcel": "^2.0.1"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=16"
   },
   "targets": {
     "main": {
       "optimize": true,
       "isLibrary": true
-    },
-    "module": {
-      "optimize": true,
-      "isLibrary": true
     }
-  },
-  "exports": {
-    "import": "./dist/module.js",
-    "require": "./dist/main.js"
   }
 }
