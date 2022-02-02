@@ -26,6 +26,10 @@ function exists(filename) {
   }
 }
 
+/**
+ * @param process Node process (TODO: pass in arguments only)
+ * @param printUsage function
+ */
 async function parseArguments(process, printUsage) {
   const argv = minimist(process.argv.slice(2))
   debug('argv=', argv)
@@ -33,7 +37,12 @@ async function parseArguments(process, printUsage) {
 
   if (argv.help || argv.h) {
     debug('help option detected')
-    printUsage()
+    if (printUsage != undefined && typeof printUsage === 'function') {
+      printUsage()
+    }
+    else {
+      console.log('No help available. Please contact the developer, which is probably Adam Koch, and tell him he is missing the help.')
+    }
     process.exit()
   } else if (argv._.length == 0) {
     debug('no arguments - using stdin and stdout')
