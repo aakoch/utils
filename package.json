@@ -1,13 +1,14 @@
 {
   "name": "@foo-dog/utils",
-  "version": "0.3.0",
+  "version": "1.0.0-SNAPSHOT",
   "description": "Adam's Utilities",
   "source": "src/index.js",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "parcel build",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "test": "c8 tap --no-coverage"
   },
   "keywords": [
     "aakoch",
@@ -22,7 +23,9 @@
     "minimist": "^1.2.5"
   },
   "devDependencies": {
-    "parcel": "^2.0.1"
+    "c8": "^7.11.0",
+    "parcel": "^2.0.1",
+    "tap": "^15.1.6"
   },
   "engines": {
     "node": ">=16"
