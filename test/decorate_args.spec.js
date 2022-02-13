@@ -1,6 +1,41 @@
 import tap from 'tap'
 import decorateOptions from '../src/decorate_args.js?test'
 import path from 'node:path'
+import fs from 'node:fs'
+import temp from 'temp'
+import concat from 'concat-stream'
+import stream from 'node:stream'
+
+function createTestFolderWithFiles(...filesAndDirectory) {
+  const tempDirectory = filesAndDirectory.pop()
+  const files = filesAndDirectory
+  files.forEach(file => {
+    try {
+      fs.writeFileSync(path.resolve(tempDirectory, file), "no data")
+    }
+    catch (e) {
+      console.error('Could not write ' + file + ':' + e.message)
+    }
+  })
+
+  return files.map(filename => path.resolve(tempDirectory, filename))
+}
+
+function deleteTestFolderWithFiles(...filesAndDirectory) {
+  const tempDirectory = filesAndDirectory.pop()
+  const files = filesAndDirectory
+
+  files.forEach(file => {
+    try {
+      fs.unlinkSync(path.resolve(tempDirectory, file))
+    }
+    catch (e) {
+      console.error('Could not delete ' + file + ':' + e.message)
+    }
+  })
+
+  return files.map(filename => path.resolve(tempDirectory, filename))
+}
 
 tap.test('only "in" and "out" properties get decorated - empty object returns empty object', async t => {
   const result = await decorateOptions.withCreateStreams({})
@@ -34,135 +69,107 @@ tap.test('"in" property gets decorated with "createStream" when "name" is presen
   t.type(result.in.createStream, 'function')
 })
 
-// This wouldn't verify if the directory existed or not
 tap.test('"in" property gets decorated with "files" when "name" is present and is a directory', async t => {
-  const result = await decorateOptions.withCreateStreams({ in: { name: 'hello/' } })
-  const resolvedPath = path.resolve('hello/')
-  t.same(result.in.name, resolvedPath)
-  t.ok(Array.isArray(result.in.files))
+  temp.track()
+  const tempDirectoryName = path.parse(temp.path()).dir
+  try {
+    // Set up temporary files
+    const filenames = createTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
+
+    const result = await decorateOptions.withCreateStreams({ in: { name: tempDirectoryName + path.sep } })
+
+    const resolvedPath = path.resolve(tempDirectoryName + path.sep)
+    t.same(result.in.name, resolvedPath)
+    t.ok(Array.isArray(result.in.files))
+
+    // The temp directory returned by temp.path() is a directory existing on my computer and has files, so I don't want to include
+    // those.
+    const tempFiles = result.in.files.map(file => path.resolve(tempDirectoryName, file)).filter(file => filenames.includes(file))
+    t.same(tempFiles.length, 3)
+    t.same(tempFiles, filenames)
+  }
+  finally {
+    // Remove temporary files
+    deleteTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
+  }
 })
 
-tap.test('calling resulting "createStream" will throw an error on file that doesn\'t exist', t => {
+tap.test('calling "in.createStream" will throw an error on file that doesn\'t exist', t => {
   try {
     const result = decorateOptions.withCreateStreams({ in: { name: 'hello' } })
-    console.log('result=', result)
-      // .then(result, () => {
     const resolvedPath = path.resolve('hello')
     t.same(result.in.name, resolvedPath)
     t.type(result.in.createStream, 'function')
     t.throws(result.in.createStream)
     t.end()
-  }
-  catch (e) {
+  } catch (e) {
     console.error('test: ' + e.message)
   }
 })
 
-// tap.test('-h prints help', async t => {
-//   const args = ['/usr/local/bin/node', 'somefile.js', '-h']
-//   let usagePrinted = false
-//   await parseArguments(args, () => usagePrinted = true)
-//   t.ok(usagePrinted)
-// })
+tap.test('calling "createStream" on "in" will create a fs.ReadStream', t => {
+  // Automatically track and cleanup files at exit
+  temp.track();
 
-// tap.test('--help prints help', async t => {
-//   const args = ['/usr/local/bin/node', 'somefile.js', '--help']
-//   let usagePrinted = false
-//   await parseArguments(args, () => usagePrinted = true)
-//   t.ok(usagePrinted)
-// })
+  // Process the data (note: error handling omitted)
+  temp.open('decorate_args_', function(err, info) {
+    if (!err) {
+      fs.write(info.fd, "test data", (err) => {
+        if (err)
+          console.error('Error writing test data', err);
+      });
+      fs.close(info.fd, function(err) {
+        const result = decorateOptions.withCreateStreams({ in: { name: info.path } })
 
-// tap.test('an "h" by iteself doesnt\'t print help', async t => {
-//   const args = ['/usr/local/bin/node', 'somefile.js', 'h']
-//   let usagePrinted = false
-//   await parseArguments(args, () => usagePrinted = true)
-//   t.notOk(usagePrinted)
-// })
+        const resolvedPath = path.resolve(info.path)
+        t.same(result.in.name, resolvedPath)
+        const stream = result.in.createStream()
 
-// tap.test('"help" by iteself doesnt\'t print help', async t => {
-//   const args = ['/usr/local/bin/node', 'somefile.js', 'help']
-//   let usagePrinted = false
-//   await parseArguments(args, () => usagePrinted = true)
-//   t.notOk(usagePrinted)
-// })
+        t.type(stream, 'ReadStream')
 
-// tap.test('arguments with no dash are added to arguments and not as an option', async t => {
-//   const args = '/usr/local/bin/node somefile.js -t -u -v -w t u'.split(' ')
+        stream.pipe(concat({ encoding: 'string' }, (fileContents) => {
+          t.same('test data', fileContents)
+          t.end()
+        }))
+      });
+    }
+  });
+})
 
-//   parseArguments(args)
-//     .then(parsed => {
-//       t.same(parsed, {
-//         nodePath: "/usr/local/bin/node",
-//         program: "somefile.js",
-//         args: ['t', 'u'],
-//         options: { '-t': true, '-u': true, '-v': true, '-w': true }
-//       })
-//       t.end()
-//     })
-// })
+tap.test('calling "createStream" on "out" will create a fs.WriteStream if out.name is a file', t => {
+  const result = decorateOptions.withCreateStreams({ out: { name: 'testOutFilename' } })
+  t.type(result.out.createStream, 'function')
+  t.end()
+})
 
-// tap.test('arguments can come before options', async t => {
-//   const args = '/usr/local/bin/node somefile.js t u -t -u -v -w'.split(' ')
+tap.test('calling resulting in "out.createStream" will throw an error on file that doesn\'t exist', t => {
+  try {
+    const result = decorateOptions.withCreateStreams({ out: { name: 'hello' } })
+    const resolvedPath = path.resolve('hello')
+    t.same(result.out.name, resolvedPath)
+    t.type(result.out.createStream, 'function')
+    t.throws(result.out.createStream)
+    t.end()
+  } catch (e) {
+    console.error('test: ' + e.message)
+  }
+})
 
-//   parseArguments(args)
-//     .then(parsed => {
-//       t.same(parsed, {
-//         nodePath: "/usr/local/bin/node",
-//         program: "somefile.js",
-//         args: ['t', 'u'],
-//         options: { '-t': true, '-u': true, '-v': true, '-w': true }
-//       })
-//       t.end()
-//     })
-// })
+tap.test('if out.name is a directory, then createStream() should use the in.name but in the "out" directory', t => {
+  const tempDirectoryName = path.parse(temp.path()).dir
+  try {
+    const result = decorateOptions.withCreateStreams({ in: { name: 'hello' }, out: { name: tempDirectoryName + path.sep } })
+    const resolvedPath = path.resolve(tempDirectoryName, 'hello')
+    t.same(result.out.name, resolvedPath)
+    t.type(result.out.createStream, 'function')
 
-// tap.test('options can have 2 dashes', async t => {
-//   const args = '/usr/local/bin/node somefile.js t u --test --uno --verbose --walk'.split(' ')
-
-//   parseArguments(args)
-//     .then(parsed => {
-//       t.same(parsed, {
-//         nodePath: "/usr/local/bin/node",
-//         program: "somefile.js",
-//         args: ['t', 'u'],
-//         options: { '--test': true, '--uno': true, '--verbose': true, '--walk': true }
-//       })
-//       t.end()
-//     })
-// })
-
-// tap.test('arguments with equal signs are left as such', async t => {
-//   const args = ['debug=all']
-
-//   parseArguments(args)
-//     .then(parsed => {
-//       t.same(parsed, {
-//         args: ['debug=all']
-//       })
-//       t.end()
-//     })
-// })
-
-// tap.test('flags with equal signs use the right side as the value', async t => {
-//   const args = ['--debug=all', '-p=yy']
-
-//   parseArguments(args)
-//     .then(parsed => {
-//       t.same(parsed, {
-//         options: { '--debug': 'all', '-p': 'yy' }
-//       })
-//       t.end()
-//     })
-// })
-
-// tap.test('required options that are missing throw an error', async t => {
-//   const args = ['--debug=all', '-p=yy']
-//   t.rejects(parseArguments(args, { required: [ { name: 'required' } ] }))
-// })
-
-// tap.test('required options that are missing but has an alias does NOT throw an error', async t => {
-//   const args = ['--debug=all', '-p=yy']
-//   t.resolveMatch(parseArguments(args, { 
-//     required: [ { name: 'required', aliases: ['-p'] } ] 
-//   }), {})
-// })
+    stream.Readable.from('test').pipe(result.out.createStream())
+    t.same(fs.readFileSync(result.out.name, {encoding: 'utf8'}), 'test')
+    t.end()
+  } catch (e) {
+    console.error('test: ' + e.message)
+  }
+  finally {
+    fs.unlinkSync(path.resolve(tempDirectoryName, 'hello'))
+  }
+})
