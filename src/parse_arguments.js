@@ -1,6 +1,9 @@
-import debugFunc from 'debug'
-const debug = debugFunc('@foo-dog/utils:parse_arguments')
-const shouldExit = !import.meta.url.endsWith('?test')
+import fs from "node:fs";
+import path from "node:path";
+import debugFunc from "debug";
+import { directoryExists, createDirectory } from "./utils.js"
+const debug = debugFunc("@foo-dog/utils:parse_arguments");
+const isInTest = import.meta.url.endsWith("?test");
 
 /**
  * @param process Node process (TODO: pass in arguments only)
@@ -23,95 +26,220 @@ const shouldExit = !import.meta.url.endsWith('?test')
  */
 // This isn't fully flushed out yet
 async function parseArguments(processOrArgv, printUsage, options) {
+  function isNodeProcess(processOrArgv) {
+    debug("processOrArgv=", processOrArgv);
 
-  function looksLikeAProcess(processOrNot) {
-    debug('processOrNot=', processOrNot)
-    return processOrNot[0].startsWith('/') || processOrNot.hasOwnProperty('argv')
+    return (
+      typeof processOrArgv === "object" &&
+      processOrArgv.hasOwnProperty("argv") &&
+      processOrArgv.argv[0].startsWith("/") &&
+      processOrArgv.title === "node"
+    );
   }
 
   if (options == undefined) {
-    if (printUsage !== null && typeof printUsage === 'object') {
-      options = printUsage
-    }
-    else {
-      options = {}
-    }
-  }
-
-  const optionalParams = options.optional ?? []
-  const requiredParams = options.required ?? []
-
-  debug('options.required=', options.required)
-  debug('requiredParams=', requiredParams)
-
-  const ret = {}
-  let args
-  if (looksLikeAProcess(processOrArgv)) {
-    ret.nodePath = processOrArgv[0]
-    ret.program = processOrArgv[1]
-    args = processOrArgv.slice(2)
-  }
-  else {
-    args = processOrArgv?.argv || processOrArgv
-  }
-
-  if (args.includes('-h') || args.includes('--help')) {
-    printUsage()
-    if (shouldExit) {
-      process.exit(0)
+    if (printUsage !== null && typeof printUsage === "object") {
+      options = printUsage;
+    } else {
+      options = {};
     }
   }
 
-  const internalOptions = {}, internalArgs = []
+  const optionalParams = options.optional ?? [];
+  const requiredParams = options.required ?? [];
+
+  debug("options.required=", options.required);
+  debug("requiredParams=", requiredParams);
+
+  const ret = {};
+  let args;
+  if (isNodeProcess(processOrArgv)) {
+    ret.nodePath = processOrArgv.argv[0];
+    ret.program = processOrArgv.argv[1];
+    args = processOrArgv.argv.slice(2);
+  } else {
+    args = processOrArgv?.argv || processOrArgv;
+  }
+
+  if (args.includes("-h") || args.includes("--help")) {
+    printUsage();
+    if (!isInTest) {
+      process.exit(0);
+    } else {
+      return;
+    }
+  }
+
+  const internalOptions = {},
+    internalArgs = [];
   for (let i = 0; i < args.length; i++) {
     const element = args[i];
-    if (element.startsWith('-')) {
-      const [key, val] = element.split('=')
-      internalOptions[key] = val ?? true
-    }
-    else {
-      internalArgs.push(element)
+    if (element === "-") {
+      internalArgs.push(element);
+    } else if (element.startsWith("--")) {
+      const [key, val] = element.split("=");
+      internalOptions[key.slice(2)] = val || true;
+    } else if (element.startsWith("-")) {
+      const [key, val] = element.split("=");
+      internalOptions[key.slice(1)] = val || true;
+    } else {
+      internalArgs.push(element);
     }
   }
 
-  if (internalArgs.length > 0) {
-    ret.args = internalArgs
+  if (options.hasOwnProperty('skipCreateStreamFunctions') && options.skipCreateStreamFunctions === true) {
+    if (internalArgs.length > 0) {
+      ret.args = internalArgs;
+    }
+  }
+  else {
+    const [inFilename, outFilename] = internalArgs;
+    ret.in = createInObject(inFilename);
+    ret.out = createOutObject(outFilename);
+    ret.args = internalArgs.slice(2);
   }
 
   if (Object.keys(internalOptions).length > 0) {
-    ret.options = internalOptions
+    ret.options = internalOptions;
   }
 
-  debug('requiredParams.length=', requiredParams.length)
-  for (let reqIdx = 0; reqIdx < requiredParams.length; reqIdx++) {
-    const element = requiredParams[reqIdx];
-    debug('required=', element)
-    debug('ret?.args=', ret?.args)
-    debug('requiredParams[reqIdx].aliases=', requiredParams[reqIdx].aliases)
+  checkForRequiredParameters(requiredParams, ret);
 
-    debug('(new Array()).concat(element.name).concat(requiredParams[reqIdx].aliases)=', (new Array()).concat(element.name).concat(requiredParams[reqIdx].aliases))
-    new Array(element.name).concat(requiredParams[reqIdx].aliases).forEach(requiredName => {
-      debug(requiredName)
-    })
-    if (!new Array(element.name).concat(requiredParams[reqIdx].aliases).some(requiredName => {
-      debug('!!ret?.args?.contains(requiredName)=', !!ret?.args?.contains(requiredName))
-      debug('ret?.options?.hasOwnProperty(requiredName)=', ret?.options?.hasOwnProperty(requiredName))
-      if (!!ret?.args?.contains(requiredName) || ret?.options?.hasOwnProperty(requiredName)) {
-        debug('don\'t throw')
-        return true
+  return ret;
+
+  function createInObject(inFilename) {
+    const inObj = {};
+    inObj.name = inFilename ?? "stdin";
+    if (inObj.name === "stdin") {
+      inObj.createStream = () => process.stdin;
+      inObj.isDir = () => false;
+    } else {
+      const resolvedIn = path.resolve(inObj.name);
+
+      try {
+        fs.accessSync(resolvedIn, fs.constants.R_OK);
+      } catch (e) {
+        console.error(e);
+        throw new Error(`Could not ${e.syscall} "${e.path}"`);
       }
-      else {
-        debug('throw')
-        return false
+
+      inObj.createStream = () => fs.createReadStream(resolvedIn);
+      (inObj.isDir = () => fs.lstatSync(resolvedIn).isDirectory()),
+        (inObj.files = () =>
+          fs.lstatSync(resolvedIn).isDirectory()
+            ? fs
+                .readdirSync(resolvedIn, { withFileTypes: true })
+                .filter(
+                  (dirent) =>
+                    dirent.isFile() &&
+                    isSupportedFileExtension(path.extname(dirent.name.slice(1)))
+                )
+                .map((dirrent) => dirrent.name)
+            : resolvedIn);
+    }
+
+    return inObj;
+  }
+
+  function createOutObject(outFilename) {
+    const outObj = {};
+    outObj.name = outFilename ?? "stdout";
+    if (outObj.name === "stdout") {
+      outObj.createStream = () => process.stdout;
+      outObj.isDir = () => false;
+    } else {
+      const dest = path.resolve(outObj.name);
+      debug("dest=", dest);
+
+      if (outObj.name.endsWith(path.sep)) {
+        // handle out as directory
+
+        // check if the directory exists
+        if (!directoryExists(dest)) {
+          createDirectory(dest);
+        }
+
+        outObj.name = dest;
+        (outObj.createStream = () =>
+          fs.createWriteStream(dest, { flags: "w" })),
+          (outObj.isDir = () => true);
+      } else {
+        // handleOutAsFile
+        const destDir = path.dirname(outObj.name);
+
+        // check if the directory exists
+        if (!directoryExists(destDir)) {
+          createDirectory(destDir);
+        }
+        (outObj.name = outObj.name),
+          (outObj.createStream = () => {
+            return fs.createWriteStream(dest, { flags: "w" });
+          }),
+          (outObj.isDir = () => false);
       }
-    })) {
-      throw new Error('Required field "' + element.name + '" was not found')
+    }
+    return outObj;
+  }
+
+  function checkForRequiredParameters(requiredParams, argumentsAndOptions) {
+    requiredParams.forEach((requiredParameter) => {
+      checkForRequiredParam(requiredParameter, argumentsAndOptions);
+    });
+  }
+
+  function checkForRequiredParam(requiredParameter, argumentsAndOptions) {
+    let nameAndAliases = [requiredParameter.name];
+    if (requiredParameter.aliases) {
+      nameAndAliases = nameAndAliases.concat(requiredParameter.aliases);
+    }
+
+    const argumentsHasNameOrAlias = doArgumentsOrOptionsHaveNameOrAlias(
+      nameAndAliases,
+      argumentsAndOptions
+    );
+
+    if (!argumentsHasNameOrAlias) {
+      throw new Error(
+        'Required field "' + requiredParameter.name + '" was not found'
+      );
     }
   }
-  
-  return ret
 
+  function doArgumentsOrOptionsHaveNameOrAlias(
+    nameAndAliases,
+    argumentsAndOptions
+  ) {
+    return (
+      checkCollectionForNameOrAlias(nameAndAliases, argumentsAndOptions.args) ||
+      checkCollectionForNameOrAlias(nameAndAliases, argumentsAndOptions.options)
+    );
+  }
 
+  function checkCollectionForNameOrAlias(nameAndAliases, parameterCollection) {
+    let argumentsHaveNameOrAlias = false;
+    debug("nameAndAliases=", nameAndAliases);
+    debug("parameterCollection=", parameterCollection);
+    if (parameterCollection != undefined) {
+      if (Array.isArray(parameterCollection) && parameterCollection.length) {
+        argumentsHaveNameOrAlias = nameAndAliases.some((name) =>
+          parameterCollection.includes(name)
+        );
+      } else if (typeof parameterCollection === "object") {
+        argumentsHaveNameOrAlias = nameAndAliases.some((name) =>
+          parameterCollection.hasOwnProperty(name)
+        );
+      } else {
+        console.error(
+          "Unexpected error in checkCollectionForNameOrAlias(). nameAndAliases=",
+          nameAndAliases,
+          ", parameterCollection=",
+          parameterCollection
+        );
+        throw new Error("Unexpected error (and nothing coded to handle it)");
+      }
+    }
+    return argumentsHaveNameOrAlias;
+  }
   // // const argv = minimist(process.argv.slice(2))
   // // debug('argv=', argv)
   // let ret = { in: {}, out: {} }
@@ -127,15 +255,15 @@ async function parseArguments(processOrArgv, printUsage, options) {
   //   process.exit()
   // } else if (argv._.length == 0) {
   //   debug('no arguments - using stdin and stdout')
-  //   ret = { 
-  //     in: { 
-  //       name: 'stdin', 
-  //       createStream: () => process.stdin, 
-  //       isDir: () => false 
-  //     }, 
-  //     out: { 
-  //       name: 'stdout', 
-  //       createStream: () => process.stdout, 
+  //   ret = {
+  //     in: {
+  //       name: 'stdin',
+  //       createStream: () => process.stdin,
+  //       isDir: () => false
+  //     },
+  //     out: {
+  //       name: 'stdout',
+  //       createStream: () => process.stdout,
   //       isDir: () => false
   //     }
   //   }
@@ -192,7 +320,7 @@ async function parseArguments(processOrArgv, printUsage, options) {
   //                 debug('dirrent.name=' + dirrent.name)
   //                 debug('path.resolve(resolvedIn, dirrent.name)=' + path.resolve(resolvedIn, dirrent.name))
   //                 return path.resolve(resolvedIn, dirrent.name)
-  //               }) 
+  //               })
   //            }
   //            else {
   //             return resolvedIn
@@ -223,7 +351,7 @@ async function parseArguments(processOrArgv, printUsage, options) {
 
   //     if (argv._[1].endsWith(path.sep)) {
   //       // handle out as directory
-        
+
   //       // check if the directory exists
   //       if (!directoryExists(dest)) {
   //         createDirectory(dest)
@@ -269,4 +397,4 @@ async function parseArguments(processOrArgv, printUsage, options) {
   // return ret
 }
 
-export default parseArguments
+export default parseArguments;

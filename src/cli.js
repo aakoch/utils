@@ -1,8 +1,5 @@
-import { fileURLToPath } from 'url';
-import fs from 'fs'
 import path from 'path';
 import chalk from 'chalk';
-const __filename = fileURLToPath(import.meta.url);
 import { parseArguments } from './index.js'
 
 function printUsage() {
