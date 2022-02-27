@@ -1,5 +1,5 @@
 import path from 'path';
-import chalk from 'chalk';
+import chalk, { chalkStderr } from 'chalk';
 import { parseArguments } from './index.js'
 
 function printUsage() {
@@ -21,23 +21,21 @@ let options;
 try {
   options = await parseArguments(process, printUsage)
 
-  console.log('options=', options)
-  console.log('options.in.isDir()=', options.in.isDir())
-
   if (options.in.isDir()) {
     console.log('options.in.files=')
-    options.in.files().forEach(file => {
+    options.in.files.forEach(file => {
       console.log('  ' + file)
     })
   }
 
-  console.log('options.out=', options.out)
-  console.log('options.out.isDir()=', options.out.isDir())
-
   if (options.out.isDir()) {
+    console.log('options.out=')
   }
+
+  console.log('options=', options)
+
 } catch (e) {
-  if (chalk.stderr.supportsColor) {
+  if (chalkStderr.supportsColor) {
     console.error(chalk.stderr(chalk.red(e.message)))
     console.error(e)
   }

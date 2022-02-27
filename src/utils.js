@@ -4,7 +4,6 @@ import fs from 'fs'
 const debug = debugFunc('@foo-dog:utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
-  debug('isSupportedFileExtension(): fileExtWithDot=' + fileExtWithDot)
   return fileExtWithDot.toLowerCase() == '.pug' || fileExtWithDot.toLowerCase() == '.foo-dog'
 }
 

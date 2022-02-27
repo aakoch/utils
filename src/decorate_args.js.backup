@@ -1,0 +1,219 @@
+import path from 'node:path'
+import fs from 'fs'
+import { readdirSync } from 'node:fs'
+import debugFunc from 'debug'
+const debug = debugFunc('@foo-dog/utils:decorate_args')
+import { exists, directoryExists, isSupportedFileExtension } from './utils.js'
+
+function createCreateStreamFunc(filename) {
+  try {
+    fs.statSync(filename)
+    return () => fs.createReadStream(filename)
+  } catch (e) {
+    if (e.message == "ENOENT: no such file or directory, stat '" + filename + "'")
+      return () => {
+        throw new Error('file not found')
+      }
+    else throw e
+  }
+}
+
+function isWritableDirectory(directory) {
+  const dir = path.resolve(directory)
+  try {
+    if (fs.statSync(dir).isDirectory()) {
+      fs.accessSync(dir, fs.constants.R_OK | fs.constants.W_OK)
+      return true
+    }
+    return false
+  } catch (e) {
+    if (e.code === 'ENOTDIR' || e.code === 'ENOENT') {
+      return false
+    }
+    console.error('Error testing if ' + dir + ' is a directory. Error: ' + e.message)
+    console.error(e)
+    throw e
+  }
+}
+
+function handleDirection(options, direction, directoryFunction) {
+  if (options?.name) {
+    if (isWritableDirectory(options.name)) {
+      directoryFunction(options)
+    } else {
+      options.createStream = createCreateStreamFunc(options.name)
+    }
+    options.name = path.resolve(options.name)
+  }
+}
+
+function createInObject(inFilename = 'stdin') {
+  debug('createInObject(): inFilename=', inFilename)
+
+  const inObj = {}
+  inObj.name = inFilename
+  if (inObj.name === 'stdin') {
+    inObj.createStream = () => process.stdin
+    inObj.isDir = () => false
+  } else {
+    const resolvedIn = path.resolve(inObj.name)
+    try {
+      fs.accessSync(resolvedIn, fs.constants.R_OK)
+    } catch (e) {
+      console.error(e)
+      throw new Error(`Could not ${e.syscall} "${e.path}"`)
+    }
+
+    inObj.createStream = () => fs.createReadStream(resolvedIn)
+    inObj.isDir = () => fs.lstatSync(resolvedIn).isDirectory()
+    inObj.files = () =>
+      fs.lstatSync(resolvedIn).isDirectory()
+        ? fs
+            .readdirSync(resolvedIn, { withFileTypes: true })
+            .filter(dirent => dirent.isFile() && isSupportedFileExtension(path.extname(dirent.name.slice(1))))
+            .map(dirrent => dirrent.name)
+        : resolvedIn
+  }
+
+  return inObj
+}
+
+function createOutObject(outFilename) {
+  const outObj = {}
+  outObj.name = outFilename ?? 'stdout'
+  if (outObj.name === 'stdout') {
+    outObj.createStream = () => process.stdout
+    outObj.isDir = () => false
+  } else {
+    const dest = path.resolve(outObj.name)
+    debug('dest=', dest)
+
+    if (outObj.name.endsWith(path.sep)) {
+      // handle out as directory
+
+      // check if the directory exists
+      if (!directoryExists(dest)) {
+        createDirectory(dest)
+      }
+
+      outObj.name = dest
+      outObj.createStream = () => fs.createWriteStream(dest, { flags: 'w' })
+      outObj.isDir = () => true
+    } else {
+      // handleOutAsFile
+      const destDir = path.dirname(outObj.name)
+
+      // check if the directory exists
+      if (!directoryExists(destDir)) {
+        createDirectory(destDir)
+      }
+      outObj.name = outObj.name
+      outObj.createStream = () => {
+        return fs.createWriteStream(dest, { flags: 'w' })
+      }
+      outObj.isDir = () => false
+    }
+  }
+  return outObj
+}
+
+function existsLength(obj, keyForArray) {
+  return exists(obj) && exists(obj[keyForArray]) && Array.isArray(obj[keyForArray]) ? obj[keyForArray].length : -1
+}
+
+function defaultInName(obj) {
+  return existsLength(obj, 'args') > 0 ? obj.args[0] : 'stdin'
+}
+
+function defaultOutName(obj) {
+  return existsLength(obj, 'args') > 1 ? obj.args[1] : 'stdout'
+}
+
+export default {
+  withCreateStreams(options) {
+    debug('withCreateStreams(): options=', options)
+
+    const inName = defaultInName(options)
+    const inObject = createInObject(inName)
+
+    const outName = defaultOutName(options)
+    const outObject = createOutObject(outName)
+
+    return { in: inObject, out: outObject }
+
+    // const inFiles = getFiles(inName
+
+    // if (isInStdIn(options)) {
+
+    // }
+    // else if (isInAFile(options)) {
+
+    // }
+    // else if (isIn
+
+    // const inFilename = existsLength(options) ? options.args[0] : 'stdin'
+    // const inOptions = createInObject(inFilename)
+
+    // handleDirection(inOptions, 'in', function(options) {
+    //   options.in.files = readdirSync(options.in.name)
+    // })
+
+    // function handleDirection(options, direction, directoryFunction) {
+    //   if (options?.name) {
+    //     if (isWritableDirectory(options.name)) {
+    //       directoryFunction(options)
+    //     }
+    //     else {
+    //       options.createStream = createCreateStreamFunc(options.name)
+    //     }
+    //     options.name = path.resolve(options.name)
+    //   }
+
+    // debug('createInObject(): inFilename=', inFilename)
+    // const inObj = {}
+    // inObj.name = inFilename ?? 'stdin'
+    // if (inObj.name === 'stdin') {
+    //   inObj.createStream = () => process.stdin
+    //   inObj.isDir = () => false
+    // } else {
+    //   const resolvedIn = path.resolve(inObj.name)
+
+    //   try {
+    //     fs.accessSync(resolvedIn, fs.constants.R_OK)
+    //   } catch (e) {
+    //     console.error(e)
+    //     throw new Error(`Could not ${e.syscall} "${e.path}"`)
+    //   }
+
+    //   inObj.createStream = () => fs.createReadStream(resolvedIn)
+    //   ;(inObj.isDir = () => fs.lstatSync(resolvedIn).isDirectory()),
+    //     (inObj.files = () =>
+    //       fs.lstatSync(resolvedIn).isDirectory()
+    //         ? fs
+    //             .readdirSync(resolvedIn, { withFileTypes: true })
+    //             .filter(dirent => dirent.isFile() && isSupportedFileExtension(path.extname(dirent.name.slice(1))))
+    //             .map(dirrent => dirrent.name)
+    //         : resolvedIn)
+    // }
+
+    //   const outFilename = existsLength(options) > 1 ? options.args[1] : 'stdout'
+    //   const outOptions = createOutObject(outFilename)
+    //   handleDirection(outOptions, 'out', function(options) {
+    //     // If we are in here, out.name ends with a path separator
+    //     const dirName = path.resolve(options.out.name)
+    //     options.out.name = path.resolve(options.out.name, path.parse(options.in.name).name)
+    //     try {
+    //       fs.statSync(dirName)
+    //       options.out.createStream = () => fs.createWriteStream(options.out.name)
+    //     }
+    //     catch (e) {
+    //       console.error('Could not find directory: ' + dirName + ': ' + e.message)
+    //       if (e.message == "ENOENT: no such file or directory, stat '" + dirName + "'")
+    //         return () => { throw new Error('file not found') }
+    //       else
+    //         throw e
+    //     }
+    //   })
+    //   return options
+  },
+}

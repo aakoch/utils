@@ -129,123 +129,19 @@ tap.test("flags without an equals sign returns true", async (t) => {
 });
 
 tap.test("Node process is handled correctly", async (t) => {
-  const args = {
-    version: "v16.13.1",
-    versions: {
-      node: "16.13.1",
-      v8: "9.4.146.24-node.14",
-    },
-    arch: "x64",
-    platform: "darwin",
-    release: {
-      name: "node",
-      lts: "Gallium",
-      sourceUrl:
-        "https://nodejs.org/download/release/v16.13.1/node-v16.13.1.tar.gz",
-      headersUrl:
-        "https://nodejs.org/download/release/v16.13.1/node-v16.13.1-headers.tar.gz",
-    },
-    moduleLoadList: [
-      "Internal Binding native_module",
-      "Internal Binding heap_utils",
-    ],
-    _eventsCount: 5,
-    _maxListeners: undefined,
-    domain: null,
-    _exiting: false,
-    features: {
-      inspector: true,
-      tls: true,
-    },
-    env: {
-      _: "/usr/local/bin/node",
-    },
-    title: "node",
-    argv: [
-      "/usr/local/bin/node",
-      "/workspaces/pug-lexing-transformer/src/cli.js",
-      "build/attr.es2015.pug",
-      "--required",
-    ],
-    execArgv: [],
-    pid: 33286,
-    ppid: 16968,
-    execPath: "/usr/local/bin/node",
-    debugPort: 9229,
-    argv0: "node",
-    _preload_modules: [],
-  };
+  const args = {...process};
+  args.argv= [
+    "/usr/local/bin/node",
+    "/workspaces/pug-lexing-transformer/src/cli.js",
+    "build/attr.es2015.pug",
+    "--required",
+  ],
 
   t.resolveMatch(parseArguments(args, { skipCreateStreamFunctions: true }), {
     nodePath: "/usr/local/bin/node",
     program: "/workspaces/pug-lexing-transformer/src/cli.js",
     options: { required: true },
   });
-});
-
-tap.test("Default to return new in and out objects", async (t) => {
-  const args = {
-    version: "v16.13.1",
-    versions: {
-      node: "16.13.1",
-      v8: "9.4.146.24-node.14",
-    },
-    arch: "x64",
-    platform: "darwin",
-    release: {
-      name: "node",
-      lts: "Gallium",
-      sourceUrl:
-        "https://nodejs.org/download/release/v16.13.1/node-v16.13.1.tar.gz",
-      headersUrl:
-        "https://nodejs.org/download/release/v16.13.1/node-v16.13.1-headers.tar.gz",
-    },
-    moduleLoadList: [
-      "Internal Binding native_module",
-      "Internal Binding heap_utils",
-    ],
-    _eventsCount: 5,
-    _maxListeners: undefined,
-    domain: null,
-    _exiting: false,
-    features: {
-      inspector: true,
-      tls: true,
-    },
-    env: {
-      _: "/usr/local/bin/node",
-    },
-    title: "node",
-    argv: [
-      "/usr/local/bin/node",
-      "/workspaces/pug-lexing-transformer/src/cli.js",
-      "src/parse_arguments.js",
-      "--required",
-    ],
-    execArgv: [],
-    pid: 33286,
-    ppid: 16968,
-    execPath: "/usr/local/bin/node",
-    debugPort: 9229,
-    argv0: "node",
-    _preload_modules: [],
-  };
-
-  t.resolveMatch(
-    parseArguments(args, {
-      optional: [
-        "allow-digits-to-start-css-classes",
-        "allowDigitToStartClassName",
-      ],
-    }),
-    {
-      nodePath: "/usr/local/bin/node",
-      program: "/workspaces/pug-lexing-transformer/src/cli.js",
-      in: { name: "src/parse_arguments.js" },
-      out: { name: "stdout" },
-      options: { required: true },
-    }
-  );
 });
 
 tap.test(

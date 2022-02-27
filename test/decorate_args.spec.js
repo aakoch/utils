@@ -78,7 +78,7 @@ tap.test('"in" property gets decorated with "files" when "name" is present and i
 
     const result = await decorateOptions.withCreateStreams({ in: { name: tempDirectoryName + path.sep } })
 
-    const resolvedPath = path.resolve(tempDirectoryName + path.sep)
+    const resolvedPath = path.resolve(tempDirectoryName)
     t.same(result.in.name, resolvedPath)
     t.ok(Array.isArray(result.in.files))
 
@@ -95,16 +95,12 @@ tap.test('"in" property gets decorated with "files" when "name" is present and i
 })
 
 tap.test('calling "in.createStream" will throw an error on file that doesn\'t exist', t => {
-  try {
-    const result = decorateOptions.withCreateStreams({ in: { name: 'hello' } })
-    const resolvedPath = path.resolve('hello')
-    t.same(result.in.name, resolvedPath)
-    t.type(result.in.createStream, 'function')
-    t.throws(result.in.createStream)
-    t.end()
-  } catch (e) {
-    console.error('test: ' + e.message)
-  }
+  const result = decorateOptions.withCreateStreams({ in: { name: 'hello' } })
+  const resolvedPath = path.resolve('hello')
+  t.same(result.in.name, resolvedPath)
+  t.type(result.in.createStream, 'function')
+  t.throws(result.in.createStream)
+  t.end()
 })
 
 tap.test('calling "createStream" on "in" will create a fs.ReadStream', t => {
@@ -142,23 +138,10 @@ tap.test('calling "createStream" on "out" will create a fs.WriteStream if out.na
   t.end()
 })
 
-tap.test('calling resulting in "out.createStream" will throw an error on file that doesn\'t exist', t => {
-  try {
-    const result = decorateOptions.withCreateStreams({ out: { name: 'hello' } })
-    const resolvedPath = path.resolve('hello')
-    t.same(result.out.name, resolvedPath)
-    t.type(result.out.createStream, 'function')
-    t.throws(result.out.createStream)
-    t.end()
-  } catch (e) {
-    console.error('test: ' + e.message)
-  }
-})
-
 tap.test('if out.name is a directory, then createStream() should use the in.name but in the "out" directory', t => {
   const tempDirectoryName = path.parse(temp.path()).dir
   try {
-    const result = decorateOptions.withCreateStreams({ in: { name: 'hello' }, out: { name: tempDirectoryName + path.sep } })
+    const result = decorateOptions.withCreateStreams({ in: { name: 'hello' }, out: { name: tempDirectoryName } })
     const resolvedPath = path.resolve(tempDirectoryName, 'hello')
     t.same(result.out.name, resolvedPath)
     t.type(result.out.createStream, 'function')

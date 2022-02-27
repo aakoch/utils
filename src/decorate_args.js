@@ -1,13 +1,20 @@
 import path from 'node:path'
 import fs from 'fs'
 import { readdirSync } from 'node:fs'
+import { exists } from '../src/utils.js'
+import debugFunc from 'debug'
+const debug = debugFunc('@foo-dog/utils:decorate_args')
 
-function createCreateStreamFunc(filename) {
+function createCreateReadStreamFunc(filename) {
   try {
-    fs.statSync(filename)
+    debug('createCreateReadStreamFunc(): looking for', filename)
+    const stat = fs.statSync(filename)
+    debug('createCreateReadStreamFunc(): found', filename)
+    debug('createCreateReadStreamFunc(): stat.isDirectory()=', stat.isDirectory())
     return () => fs.createReadStream(filename)
   }
   catch (e) {
+    debug('createCreateReadStreamFunc(): didn\'t find', filename)
     if (e.message == "ENOENT: no such file or directory, stat '" + filename + "'")
       return () => { throw new Error('file not found') }
     else
@@ -15,9 +22,10 @@ function createCreateStreamFunc(filename) {
   }
 }
 
-function isWritableDirectory(directory) {
-  const dir = path.resolve(directory)
+function isWritableDirectory(dir) {
   try {
+
+    debug('isWritableDirectory(): dir=', dir)
     if (fs.statSync(dir).isDirectory()) {
       fs.accessSync(dir, fs.constants.R_OK | fs.constants.W_OK)
       return true
@@ -33,39 +41,114 @@ function isWritableDirectory(directory) {
   }
 }
 
-function handleDirection(options, direction, directoryFunction) {
+function createObject(inOrOutput, processStreamFunc, fileFunc, dirFunc) {
+  
+  if (inOrOutput === 'stdin') {
+    return processStreamFunc()
+  }
+  else {
+    const resolvedName = path.resolve(inOrOutput)
+    if (isWritableDirectory(resolvedName)) {
+      debug('createObject(): ' + resolvedName + ' is a writable directory')
+      return dirFunc(resolvedName)
+    }
+    else {
+      debug('createObject(): ' + resolvedName + ' is not a writable directory')
+      return fileFunc(resolvedName)
+    }
+  }
+
+  // options, direction, directoryFunction) {
+
   if (options[direction]?.name) {
-    if (isWritableDirectory(options[direction].name)) {
+    const resolvedName = path.resolve(options[direction].name)
+    if (isWritableDirectory(resolvedName)) {
+      options[direction].isDir = () => true
       directoryFunction(options)
     }
     else {
-      options[direction].createStream = createCreateStreamFunc(options[direction].name)
+      options[direction].isDir = () => false
+      if (direction === 'in') {
+        options[direction].createStream = createReadCreateStreamFunc(resolvedName)
+      }
     }
-    options[direction].name = path.resolve(options[direction].name)
+    options[direction].name = options[direction]?.name === 'stdin' || options[direction]?.name === 'stdout' ? options[direction]?.name : resolvedName
   }
 }
 
+function defaultInName(obj) {
+  return obj?.in?.name ?? 'stdin'
+}
+
+function defaultOutName(obj) {
+  return obj?.out?.name ?? 'stdout'
+}
+
 export default {
-  withCreateStreams(options) {
-    handleDirection(options, 'in', function(options) {
-      options.in.files = readdirSync(options.in.name)
-    })
-    handleDirection(options, 'out', function(options) {
-      // If we are in here, out.name ends with a path separator
-      const dirName = path.resolve(options.out.name)
-      options.out.name = path.resolve(options.out.name, path.parse(options.in.name).name)
-      try {
-        fs.statSync(dirName)
-        options.out.createStream = () => fs.createWriteStream(options.out.name)
-      }
-      catch (e) {
-        console.error('Could not find directory: ' + dirName + ': ' + e.message)
-        if (e.message == "ENOENT: no such file or directory, stat '" + dirName + "'")
-          return () => { throw new Error('file not found') }
-        else
-          throw e
-      }
-    })
-    return options
+  withCreateStreams(options = {}) {
+
+    debug('withCreateStreams(): options=', options)
+
+    const decoratedOptions = {...options}
+
+    if (options?.in?.name) {
+      decoratedOptions.in = createObject(
+        defaultInName(options),
+        () => ({ 
+          name: 'stdin',
+          createStream: () => process.stdin,
+          isDir: () => false
+        }),
+        (filename) => ({ 
+          name: path.resolve(filename),
+          createStream: createCreateReadStreamFunc(path.resolve(filename)),
+          isDir: () => false
+        }),
+        (directory) => ({
+          name: directory,
+          files: readdirSync(directory),
+          isDir: () => true
+        })
+      )
+    }
+
+    if (options?.out?.name) {
+      decoratedOptions.out = createObject(
+        defaultOutName(options),
+        () => ({ 
+          name: 'stdout',
+          createStream: () => process.stdout,
+          isDir: () => false
+        }),
+        (filename) => ({ 
+          name: filename,
+          createStream: () => fs.createWriteStream(filename),
+          isDir: () => false
+        }),
+        (directory) => {
+          debug('withCreateStreams(): directory=', directory)
+
+          const outObj = {name: directory, isDir: () => true}
+          // If we are in here, out.name ends with a path separator
+          const dirName = path.resolve(directory)
+          outObj.name = path.resolve(dirName, path.parse(decoratedOptions.in.name).name)
+          try {
+            outObj.createStream = () => fs.createWriteStream(outObj.name)
+          }
+          catch (e) {
+            console.error('Could not find directory: ' + dirName + ' or write ' + outObj.name + ': ' + e.message)
+            if (e.message == "ENOENT: no such file or directory, stat '" + dirName + "'")
+              return () => { throw new Error('file not found') }
+            else
+              throw e
+          }
+          return outObj
+        }
+      )
+    }
+
+    debug('withCreateStreams(): decoratedOptions=', decoratedOptions)
+
+    return decoratedOptions
   }
 }
