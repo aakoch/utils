@@ -43,7 +43,7 @@ function isWritableDirectory(dir) {
 
 function createObject(inOrOutput, processStreamFunc, fileFunc, dirFunc) {
   
-  if (inOrOutput === 'stdin') {
+  if (inOrOutput === 'stdin' || inOrOutput === 'stdout') {
     return processStreamFunc()
   }
   else {
@@ -60,20 +60,20 @@ function createObject(inOrOutput, processStreamFunc, fileFunc, dirFunc) {
 
   // options, direction, directoryFunction) {
 
-  if (options[direction]?.name) {
-    const resolvedName = path.resolve(options[direction].name)
-    if (isWritableDirectory(resolvedName)) {
-      options[direction].isDir = () => true
-      directoryFunction(options)
-    }
-    else {
-      options[direction].isDir = () => false
-      if (direction === 'in') {
-        options[direction].createStream = createReadCreateStreamFunc(resolvedName)
-      }
-    }
-    options[direction].name = options[direction]?.name === 'stdin' || options[direction]?.name === 'stdout' ? options[direction]?.name : resolvedName
-  }
+  // if (options[direction]?.name) {
+  //   const resolvedName = path.resolve(options[direction].name)
+  //   if (isWritableDirectory(resolvedName)) {
+  //     options[direction].isDir = () => true
+  //     directoryFunction(options)
+  //   }
+  //   else {
+  //     options[direction].isDir = () => false
+  //     if (direction === 'in') {
+  //       options[direction].createStream = createReadCreateStreamFunc(resolvedName)
+  //     }
+  //   }
+  //   options[direction].name = options[direction]?.name === 'stdin' || options[direction]?.name === 'stdout' ? options[direction]?.name : resolvedName
+  // }
 }
 
 function defaultInName(obj) {
