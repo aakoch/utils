@@ -132,14 +132,14 @@ tap.test("Node process is handled correctly", async (t) => {
   const args = {...process};
   args.argv= [
     "/usr/local/bin/node",
-    "/workspaces/pug-lexing-transformer/src/cli.js",
+    "/workspaces/lexing-transformer/src/cli.js",
     "build/attr.es2015.pug",
     "--required",
   ],
 
   t.resolveMatch(parseArguments(args, { skipCreateStreamFunctions: true }), {
     nodePath: "/usr/local/bin/node",
-    program: "/workspaces/pug-lexing-transformer/src/cli.js",
+    program: "/workspaces/lexing-transformer/src/cli.js",
     options: { required: true },
   });
 });
