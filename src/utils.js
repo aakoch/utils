@@ -1,10 +1,10 @@
 import debugFunc from 'debug'
 import fs from 'fs'
 
-const debug = debugFunc('@foo-dog:utils')
+const debug = debugFunc('@foo-dog/utils')
 
 function isSupportedFileExtension(fileExtWithDot) {
-  return fileExtWithDot.toLowerCase() == '.pug' || fileExtWithDot.toLowerCase() == '.foo-dog'
+  return fileExtWithDot.toLowerCase() == '.pug' || fileExtWithDot.toLowerCase() == '.foo-dog' || fileExtWithDot.toLowerCase() == '.fd'
 }
 
 Array.prototype.peek = function () {
