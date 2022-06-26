@@ -1,6 +1,6 @@
 {
   "name": "@foo-dog/utils",
-  "version": "1.0.0-SNAPSHOT",
+  "version": "0.4.0",
   "description": "Foo-Dog Utilities",
   "source": "src/index.js",
   "main": "dist/index.js",
@@ -14,7 +14,9 @@
     "aakoch",
     "util",
     "utils",
-    "foo-dog"
+    "foo-dog",
+    "decoratedOptions",
+    "parseArguments"
   ],
   "author": "Adam A. Koch (aakoch)",
   "license": "ISC",
