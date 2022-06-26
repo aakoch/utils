@@ -19,15 +19,15 @@
   "author": "Adam A. Koch (aakoch)",
   "license": "ISC",
   "dependencies": {
-    "debug": "^4.3.2"
+    "debug": "4.3.x"
   },
   "devDependencies": {
-    "c8": "^7.11.0",
-    "chalk": "^5.0.0",
-    "concat-stream": "^2.0.0",
-    "parcel": "^2.3.2",
+    "c8": "7.11.x",
+    "chalk": "5.0.x",
+    "concat-stream": "2.0.x",
+    "parcel": "2.3.x",
     "tap": "16.2",
-    "temp": "^0.9.4"
+    "temp": "0.9.x"
   },
   "engines": {
     "node": ">=16"
