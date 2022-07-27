@@ -28,8 +28,8 @@
     "chalk": "5.0.x",
     "concat-stream": "2.0.x",
     "parcel": "2.3.x",
-    "tap": "16.2",
-    "temp": "0.9.x"
+    "tap": "^16.3.0",
+    "temp": "^0.9.4"
   },
   "engines": {
     "node": ">=16"
