@@ -12,8 +12,7 @@ function createTestFolderWithFiles(...filesAndDirectory) {
   files.forEach(file => {
     try {
       fs.writeFileSync(path.resolve(tempDirectory, file), "no data")
-    }
-    catch (e) {
+    } catch (e) {
       console.error('Could not write ' + file + ':' + e.message)
     }
   })
@@ -28,8 +27,7 @@ function deleteTestFolderWithFiles(...filesAndDirectory) {
   files.forEach(file => {
     try {
       fs.unlinkSync(path.resolve(tempDirectory, file))
-    }
-    catch (e) {
+    } catch (e) {
       console.error('Could not delete ' + file + ':' + e.message)
     }
   })
@@ -43,27 +41,27 @@ tap.test('only "in" and "out" properties get decorated - empty object returns em
 })
 
 tap.test('only "in" and "out" properties get decorated', async t => {
-  const result = await decorateOptions.withCreateStreams({ test: "in" })
-  t.same(result, { test: "in" })
+  const result = await decorateOptions.withCreateStreams({test: "in"})
+  t.same(result, {test: "in"})
 })
 
 tap.test('empty "in" property does not get decorated', async t => {
-  const result = await decorateOptions.withCreateStreams({ in: {} })
-  t.same(result, { in: {} })
+  const result = await decorateOptions.withCreateStreams({in: {}})
+  t.same(result, {in: {}})
 })
 
 tap.test('empty "out" property does not get decorated', async t => {
-  const result = await decorateOptions.withCreateStreams({ out: {} })
-  t.same(result, { out: {} })
+  const result = await decorateOptions.withCreateStreams({out: {}})
+  t.same(result, {out: {}})
 })
 
 tap.test('empty "in" and "out" properties do not get decorated', async t => {
-  const result = await decorateOptions.withCreateStreams({ in: {}, out: {} })
-  t.same(result, { in: {}, out: {} })
+  const result = await decorateOptions.withCreateStreams({in: {}, out: {}})
+  t.same(result, {in: {}, out: {}})
 })
 
 tap.test('"in" property gets decorated with "createStream" when "name" is present and not a directory', async t => {
-  const result = await decorateOptions.withCreateStreams({ in: { name: 'hello' } })
+  const result = await decorateOptions.withCreateStreams({in: {name: 'hello'}})
   const resolvedPath = path.resolve('hello')
   t.same(result.in.name, resolvedPath)
   t.type(result.in.createStream, 'function')
@@ -76,7 +74,7 @@ tap.test('"in" property gets decorated with "files" when "name" is present and i
     // Set up temporary files
     const filenames = createTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
 
-    const result = await decorateOptions.withCreateStreams({ in: { name: tempDirectoryName + path.sep } })
+    const result = await decorateOptions.withCreateStreams({in: {name: tempDirectoryName + path.sep}})
 
     const resolvedPath = path.resolve(tempDirectoryName)
     t.same(result.in.name, resolvedPath)
@@ -87,15 +85,14 @@ tap.test('"in" property gets decorated with "files" when "name" is present and i
     const tempFiles = result.in.files.map(file => path.resolve(tempDirectoryName, file)).filter(file => filenames.includes(file))
     t.same(tempFiles.length, 3)
     t.same(tempFiles, filenames)
-  }
-  finally {
+  } finally {
     // Remove temporary files
     deleteTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
   }
 })
 
 tap.test('calling "in.createStream" will throw an error on file that doesn\'t exist', t => {
-  const result = decorateOptions.withCreateStreams({ in: { name: 'hello' } })
+  const result = decorateOptions.withCreateStreams({in: {name: 'hello'}})
   const resolvedPath = path.resolve('hello')
   t.same(result.in.name, resolvedPath)
   t.type(result.in.createStream, 'function')
@@ -108,14 +105,15 @@ tap.test('calling "createStream" on "in" will create a fs.ReadStream', t => {
   temp.track();
 
   // Process the data (note: error handling omitted)
-  temp.open('decorate_args_', function(err, info) {
+  temp.open('decorate_args_', function (err, info) {
     if (!err) {
       fs.write(info.fd, "test data", (err) => {
-        if (err)
+        if (err) {
           console.error('Error writing test data', err);
+        }
       });
-      fs.close(info.fd, function(err) {
-        const result = decorateOptions.withCreateStreams({ in: { name: info.path } })
+      fs.close(info.fd, function (err) {
+        const result = decorateOptions.withCreateStreams({in: {name: info.path}})
 
         const resolvedPath = path.resolve(info.path)
         t.same(result.in.name, resolvedPath)
@@ -123,7 +121,7 @@ tap.test('calling "createStream" on "in" will create a fs.ReadStream', t => {
 
         t.type(stream, 'ReadStream')
 
-        stream.pipe(concat({ encoding: 'string' }, (fileContents) => {
+        stream.pipe(concat({encoding: 'string'}, (fileContents) => {
           t.same('test data', fileContents)
           t.end()
         }))
@@ -133,26 +131,55 @@ tap.test('calling "createStream" on "in" will create a fs.ReadStream', t => {
 })
 
 tap.test('calling "createStream" on "out" will create a fs.WriteStream if out.name is a file', t => {
-  const result = decorateOptions.withCreateStreams({ out: { name: 'testOutFilename' } })
+  const result = decorateOptions.withCreateStreams({out: {name: 'testOutFilename'}})
   t.type(result.out.createStream, 'function')
   t.end()
 })
 
-tap.test('if out.name is a directory, then createStream() should use the in.name but in the "out" directory', t => {
+tap.test('if out.name is a directory AND in is a single file, then createStream() should use the in.name but in the "out" directory', t => {
   const tempDirectoryName = path.parse(temp.path()).dir
   try {
-    const result = decorateOptions.withCreateStreams({ in: { name: 'hello' }, out: { name: tempDirectoryName } })
+    const result = decorateOptions.withCreateStreams({in: {name: 'hello'}, out: {name: tempDirectoryName}})
     const resolvedPath = path.resolve(tempDirectoryName, 'hello')
     t.same(result.out.name, resolvedPath)
     t.type(result.out.createStream, 'function')
 
     stream.Readable.from('test').pipe(result.out.createStream())
     t.same(fs.readFileSync(result.out.name, {encoding: 'utf8'}), 'test')
-    t.end()
   } catch (e) {
     console.error('test: ' + e.message)
-  }
-  finally {
+  } finally {
     fs.unlinkSync(path.resolve(tempDirectoryName, 'hello'))
+    t.end()
+  }
+})
+
+tap.test('if out.name is a directory AND in is a directory, then out.name should stay the name of the output directory', t => {
+  const tempDirectoryName = path.parse(temp.path()).dir
+  const inPath = path.resolve(tempDirectoryName + path.sep + 'nested' + path.sep + 'in' + path.sep);
+  const outPath = path.resolve(tempDirectoryName + path.sep + 'output' + path.sep);
+  try {
+    const filenames = createTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
+    console.log("filenames=", filenames)
+    console.log("Creating input temp directory for test: " + tempDirectoryName + path.sep + 'nested' + path.sep + 'in' + path.sep)
+    fs.mkdirSync(inPath, {recursive: true})
+
+    console.log("Creating output temp directory for test: " + tempDirectoryName + path.sep + 'output' + path.sep)
+    fs.mkdirSync(outPath)
+    
+    const result = decorateOptions.withCreateStreams({
+      in: {name: inPath}, out: {name: outPath}
+    })
+    const resolvedPath = path.resolve(tempDirectoryName, 'output/')
+    t.same(result.out.name, resolvedPath)
+    t.ok(result.out.isDir())
+  } catch (e) {
+    console.error('test: ' + e.message)
+  } finally {
+    fs.rmdirSync(inPath)
+    fs.rmdirSync(outPath)
+    // Remove temporary files
+    deleteTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
+    t.end()
   }
 })

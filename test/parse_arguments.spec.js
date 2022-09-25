@@ -162,3 +162,5 @@ tap.test("a dash for the output should return stdout");
 tap.test("passing in a directory will read the contents");
 
 tap.test("a missing output directory will be created (so createDirectory is called)")
+
+tap.test("a nested input directory doesn't append the nested directory to the output")

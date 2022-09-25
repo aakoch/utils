@@ -77,11 +77,13 @@ function createObject(inOrOutput, processStreamFunc, fileFunc, dirFunc) {
 }
 
 function defaultInName(obj) {
-  return obj?.in?.name ?? 'stdin'
+  const inName = obj?.in?.name ?? 'stdin'
+  return inName === '-' ? 'stdin' : inName
 }
 
 function defaultOutName(obj) {
-  return obj?.out?.name ?? 'stdout'
+  const outName = obj?.out?.name ?? 'stdout'
+  return outName === '-' ? 'stdout' : outName
 }
 
 export default {
@@ -131,7 +133,12 @@ export default {
           const outObj = {name: directory, isDir: () => true}
           // If we are in here, out.name ends with a path separator
           const dirName = path.resolve(directory)
-          outObj.name = path.resolve(dirName, path.parse(decoratedOptions.in.name).name)
+          if (decoratedOptions.in.isDir()) {
+            outObj.name = path.resolve(dirName)
+          }
+          else {
+            outObj.name = path.resolve(dirName, path.parse(decoratedOptions.in.name).name)
+          }
           try {
             outObj.createStream = () => fs.createWriteStream(outObj.name)
           }
