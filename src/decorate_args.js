@@ -96,7 +96,7 @@ export default {
     if (options?.in?.name) {
       decoratedOptions.in = createObject(
         defaultInName(options),
-        () => ({ 
+        () => ({
           name: 'stdin',
           createStream: () => process.stdin,
           isDir: () => false
@@ -128,7 +128,10 @@ export default {
           isDir: () => false
         }),
         (directory) => {
-          debug('withCreateStreams(): directory=', directory)
+          //debug('withCreateStreams(): directory=', directory)
+          //debug('withCreateStreams(): options=', options)
+          //debug('withCreateStreams(): options.hasOwnProperty(\'out-extension\')=', options?.options?.hasOwnProperty('out-extension'))
+          // debug('withCreateStreams(): options.hasOwnProperty(\'out-extension\')=', options?.options['out-extension'])
 
           const outObj = {name: directory, isDir: () => true}
           // If we are in here, out.name ends with a path separator
@@ -136,11 +139,18 @@ export default {
           if (decoratedOptions.in.isDir()) {
             outObj.name = path.resolve(dirName)
           }
+          else if (options?.options?.hasOwnProperty('out-extension')) {
+            outObj.name = path.resolve(dirName, path.parse(decoratedOptions.in.name).name
+              + "." + options.options['out-extension'])
+          }
           else {
-            outObj.name = path.resolve(dirName, path.parse(decoratedOptions.in.name).name)
+            outObj.name = dirName
           }
           try {
-            outObj.createStream = () => fs.createWriteStream(outObj.name)
+            outObj.createStream = () => {
+              console.log("Writing to " + outObj.name)
+              return fs.createWriteStream(outObj.name)
+            }
           }
           catch (e) {
             console.error('Could not find directory: ' + dirName + ' or write ' + outObj.name + ': ' + e.message)

@@ -5,10 +5,14 @@ import fs from 'node:fs'
 import temp from 'temp'
 import concat from 'concat-stream'
 import stream from 'node:stream'
+import {directoryExists} from "../src/utils.js";
 
 function createTestFolderWithFiles(...filesAndDirectory) {
   const tempDirectory = filesAndDirectory.pop()
   const files = filesAndDirectory
+  if (!directoryExists(tempDirectory)) {
+    fs.mkdirSync(tempDirectory, {recursive: true})
+  }
   files.forEach(file => {
     try {
       fs.writeFileSync(path.resolve(tempDirectory, file), "no data")
@@ -139,17 +143,22 @@ tap.test('calling "createStream" on "out" will create a fs.WriteStream if out.na
 tap.test('if out.name is a directory AND in is a single file, then createStream() should use the in.name but in the "out" directory', t => {
   const tempDirectoryName = path.parse(temp.path()).dir
   try {
-    const result = decorateOptions.withCreateStreams({in: {name: 'hello'}, out: {name: tempDirectoryName}})
-    const resolvedPath = path.resolve(tempDirectoryName, 'hello')
-    t.same(result.out.name, resolvedPath)
+    const inName = path.resolve(tempDirectoryName, 'file1.txt');
+    createTestFolderWithFiles('file1.txt', tempDirectoryName)
+    const expectedOutPath = path.resolve(tempDirectoryName, 'file1.out')
+
+    const result = decorateOptions.withCreateStreams({in: {name: inName}, out: {name: tempDirectoryName}, options: {'out-extension': 'out'}})
+    t.same(result.out.name, expectedOutPath, "Expected the out path to be " + expectedOutPath + ", but was " + result.out.name)
     t.type(result.out.createStream, 'function')
 
     stream.Readable.from('test').pipe(result.out.createStream())
     t.same(fs.readFileSync(result.out.name, {encoding: 'utf8'}), 'test')
   } catch (e) {
     console.error('test: ' + e.message)
+    t.fail(e.message)
   } finally {
-    fs.unlinkSync(path.resolve(tempDirectoryName, 'hello'))
+    // fs.unlinkSync(path.resolve(tempDirectoryName, 'file1'))
+    deleteTestFolderWithFiles('file1.txt', tempDirectoryName)
     t.end()
   }
 })
@@ -166,7 +175,7 @@ tap.test('if out.name is a directory AND in is a directory, then out.name should
 
     console.log("Creating output temp directory for test: " + tempDirectoryName + path.sep + 'output' + path.sep)
     fs.mkdirSync(outPath)
-    
+
     const result = decorateOptions.withCreateStreams({
       in: {name: inPath}, out: {name: outPath}
     })
@@ -175,6 +184,7 @@ tap.test('if out.name is a directory AND in is a directory, then out.name should
     t.ok(result.out.isDir())
   } catch (e) {
     console.error('test: ' + e.message)
+    t.fail(e.message)
   } finally {
     fs.rmdirSync(inPath)
     fs.rmdirSync(outPath)
@@ -182,4 +192,63 @@ tap.test('if out.name is a directory AND in is a directory, then out.name should
     deleteTestFolderWithFiles('file1', 'file2', 'file3', tempDirectoryName)
     t.end()
   }
+})
+
+tap.test('if in/out directories don\'t exist, then out.name should stay the name of the output directory', t => {
+  const tempDirectoryName = path.parse(temp.path()).dir
+  const inPath = path.resolve(tempDirectoryName + path.sep + 'in' + path.sep + 'basic.pug');
+
+  const filenames = createTestFolderWithFiles('basic.pug', tempDirectoryName + path.sep + 'in')
+  const outPath = path.resolve(tempDirectoryName + path.sep + 'output' + path.sep);
+  try {
+    const result = decorateOptions.withCreateStreams({
+      in: {name: inPath}, out: {name: outPath}
+    })
+    const resolvedPath = path.resolve(tempDirectoryName, 'output/')
+    // console.log("resolvedPath=", resolvedPath)
+    // console.log("result.out=", result.out)
+    t.same(result.out.name, resolvedPath)
+    t.end()
+  } catch (e) {
+    console.error('test: ' + e.message)
+    t.fail(e.message)
+  } finally {
+    deleteTestFolderWithFiles('basic.pug', tempDirectoryName + path.sep + 'in')
+  }
+})
+
+tap.test("in is a file that exists, out is a directory, file with that name should be output (but what about the extension?)", t => {
+  const tempDirectoryName = path.parse(temp.path()).dir
+  const filenames = createTestFolderWithFiles('basic.pug', tempDirectoryName + path.sep + 'in')
+  const inPath = path.resolve(tempDirectoryName + path.sep + 'in' + path.sep + 'basic.pug');
+  const outPath = path.resolve(tempDirectoryName + path.sep + 'output' + path.sep);
+  try {
+    const result = decorateOptions.withCreateStreams({
+      in: {name: inPath}, out: {name: outPath}
+    })
+    const resolvedPath = path.resolve(tempDirectoryName, 'output/')
+    console.log("resolvedPath=", resolvedPath)
+    console.log("result.out=", result.out)
+    t.same(result.out.name, resolvedPath)
+    t.notOk(result.out.isDir())
+    t.end()
+  } catch (e) {
+    console.error('test: ' + e.message)
+    t.fail(e.message)
+  } finally {
+    deleteTestFolderWithFiles('basic.pug', tempDirectoryName + path.sep + 'in')
+  }
+})
+
+tap.test("verifying previous scenario", async t => {
+  const result = await decorateOptions.withCreateStreams({
+    options: {'out-extension': 'json'},
+    in: {
+      name: '/Users/aakoch/projects/new-foo/workspaces/lexing-transformer/build/in/basic.pug'
+    },
+    out: {name: 'build/out/'}
+  })
+
+  const resolvedPath = path.resolve('.', 'build/out/basic.json')
+  t.same(result.out.name, resolvedPath)
 })
