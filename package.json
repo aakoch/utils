@@ -1,6 +1,6 @@
 {
   "name": "@foo-dog/utils",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Foo-Dog Utilities",
   "source": "src/index.js",
   "main": "dist/index.js",
