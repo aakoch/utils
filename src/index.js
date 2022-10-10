@@ -2,12 +2,12 @@ import {
   isSupportedFileExtension,
   simpleProjectRootDir,
   exists
-} from '../src/utils.js'
+} from './utils.js'
 import originalParseArguments from '../src/parse_arguments.js'
 import decorateArgs from '../src/decorate_args.js'
 
 function defined(obj) {
-  return obj != null && obj != undefined
+  return obj != null && typeof obj != 'undefined'
 }
 
 function existsLength(obj, keyForArray) {
@@ -30,9 +30,12 @@ const parseArguments = async (...arr) => {
   return decorateArgs.withCreateStreams(newArgs)
 }
 
+const withCreateStreams = decorateArgs.withCreateStreams
+
 export {
   exists,
   isSupportedFileExtension,
   parseArguments,
-  simpleProjectRootDir
+  simpleProjectRootDir,
+  withCreateStreams
 }
