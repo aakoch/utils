@@ -28,7 +28,7 @@
     "chalk": "5.0.x",
     "concat-stream": "2.0.x",
     "parcel": "2.3.x",
-    "tap": "^16.3.0",
+    "tap": "^16.3.10",
     "temp": "^0.9.4"
   },
   "engines": {
