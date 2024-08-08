@@ -90,7 +90,7 @@ function checkCollectionForNameOrAlias(nameAndAliases, parameterCollection) {
  *        }
  */
 // This isn't fully flushed out yet
-async function parseArguments(processOrArgv, printUsage, options) {
+async function parseArguments(processOrArgv, printUsage = undefined, options = undefined) {
   if (options == undefined) {
     options = typeof printUsage === 'object' ? printUsage : {}
   }
